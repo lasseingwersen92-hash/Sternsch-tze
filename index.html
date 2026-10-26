@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lineare Funktionen – Bogenschütze und Sterne</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --ink:#213247;
+      --muted:#6b7b8f;
+      --border:#dfe6ef;
+      --panel:#ffffff;
+
+      --top-task:#eef5ff;
+      --top-formula:#f4f8ff;
+      --top-stats:#eefaf3;
+
+      --slider-m:#ecfbf3;
+      --slider-b:#fff3eb;
+
+      --m:#1f9d71;
+      --b:#e07a3f;
+
+      --curve:rgba(40,62,92,.58);
+      --target:rgba(218,135,37,.78);
+      --axis:#708199;
+      --grid:rgba(84,107,136,.16);
+
+      --sky1:#fbfdff;
+      --sky2:#e8f3ff;
+      --ground1:#b8df9f;
+      --ground2:#88bc71;
+      --ground3:#6ca05a;
+
+      --star:#ffc83d;
+      --star2:#ffea8b;
+
+      --archer:#5b6470;
+      --archerDark:#35414d;
+      --arrow:#495868;
+      --button:#29445f;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      background:linear-gradient(180deg,#f9fbfd 0%, #f4f6fb 100%);
+      color:var(--ink);
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+
+    .app{
+      width:min(1120px,96vw);
+      margin:18px auto 28px;
+    }
+
+    .topbar{
+      display:grid;
+      grid-template-columns:minmax(170px,220px) 1fr minmax(210px,250px);
+      gap:12px;
+      margin-bottom:12px;
+    }
+
+    .card{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px 14px;
+      box-shadow:0 8px 22px rgba(31,44,65,.05);
+    }
+
+    .task-card{background:var(--top-task)}
+    .formula-card{
+      background:var(--top-formula);
+      text-align:center;
+    }
+    .stats-card{
+      background:var(--top-stats);
+      text-align:right;
+    }
+
+    .label{
+      font-size:.82rem;
+      color:var(--muted);
+      font-weight:760;
+      text-transform:uppercase;
+      letter-spacing:.02em;
+    }
+
+    .big{
+      font-size:1.25rem;
+      font-weight:850;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .formula{
+      font-size:clamp(1.15rem,2.2vw,1.75rem);
+      font-weight:820;
+      white-space:nowrap;
+      overflow:auto;
+      margin-top:6px;
+    }
+
+    .hint{
+      margin-top:8px;
+      font-size:.86rem;
+      color:var(--muted);
+      line-height:1.28;
+    }
+
+    .c-m{color:var(--m)}
+    .c-b{color:var(--b)}
+
+    .stage{
+      position:relative;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:0 8px 24px rgba(31,44,65,.05);
+    }
+
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      aspect-ratio:16/9;
+      touch-action:none;
+    }
+
+    .message{
+      position:absolute;
+      bottom:14px;
+      left:50%;
+      transform:translateX(-50%);
+      max-width:84%;
+      background:rgba(255,255,255,.94);
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:8px 14px;
+      font-size:.9rem;
+      font-weight:760;
+      text-align:center;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .16s ease;
+      box-shadow:0 6px 16px rgba(31,44,65,.08);
+    }
+    .message.show{opacity:1}
+
+    .finish-panel{
+      position:absolute;
+      top:16px;
+      left:50%;
+      transform:translateX(-50%);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      flex-wrap:wrap;
+      width:min(92%,780px);
+      z-index:5;
+    }
+
+    .finish-panel.show{display:flex}
+
+    button{
+      border:0;
+      border-radius:14px;
+      padding:12px 16px;
+      min-height:48px;
+      background:var(--button);
+      color:white;
+      font:inherit;
+      font-weight:810;
+      cursor:pointer;
+      box-shadow:0 8px 16px rgba(41,68,95,.16);
+      transition:transform .12s ease,opacity .12s ease;
+    }
+
+    button:hover{transform:translateY(-1px)}
+    button:disabled{opacity:.56; cursor:not-allowed; transform:none}
+
+    .answer-btn{
+      background:rgba(248,242,229,.96);
+      color:#8f5e17;
+      border:1px solid rgba(204,146,54,.28);
+      box-shadow:0 7px 16px rgba(31,44,65,.08);
+      cursor:default;
+    }
+    .answer-btn:hover{transform:none}
+
+    .toolbar{
+      margin-top:10px;
+      display:flex;
+      justify-content:flex-end;
+    }
+
+    .secondary{
+      min-height:40px;
+      padding:9px 13px;
+      background:#f5f8fc;
+      color:var(--ink);
+      border:1px solid var(--border);
+      box-shadow:none;
+      font-size:.88rem;
+    }
+
+    .controls{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr)) auto;
+      gap:12px;
+      align-items:end;
+    }
+
+    .control{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px 12px;
+      box-shadow:0 8px 20px rgba(31,44,65,.04);
+    }
+    .m-control{background:var(--slider-m); color:var(--m)}
+    .b-control{background:var(--slider-b); color:var(--b)}
+
+    .control label{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      align-items:baseline;
+      margin-bottom:8px;
+      font-size:.92rem;
+      font-weight:780;
+    }
+
+    .value{
+      font-size:1.05rem;
+      font-variant-numeric:tabular-nums;
+    }
+
+    input[type="range"]{
+      width:100%;
+      margin:0;
+      cursor:pointer;
+      accent-color:currentColor;
+    }
+
+    .legend{
+      display:flex;
+      justify-content:center;
+      gap:18px;
+      flex-wrap:wrap;
+      margin:10px 4px 0;
+      color:var(--muted);
+      font-size:.81rem;
+    }
+
+    .dot{
+      display:inline-block;
+      width:.72em;
+      height:.72em;
+      border-radius:50%;
+      margin-right:.35em;
+      vertical-align:.02em;
+    }
+
+    @media (max-width:900px){
+      .topbar{grid-template-columns:1fr}
+      .stats-card{text-align:left}
+      .controls{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<main class="app">
+  <section class="topbar">
+    <div class="card task-card">
+      <div class="label">Aktuelle Aufgabe</div>
+      <div class="big">Nr. <span id="taskNo">1</span></div>
+    </div>
+
+    <div class="card formula-card">
+      <div class="label">Deine eingestellte Gerade</div>
+      <div class="formula" aria-live="polite">
+        f(x) = <span class="c-m" id="fm">0,5</span> · x + <span class="c-b" id="fb">0</span>
+      </div>
+      <div class="hint">
+        <strong class="c-m">m</strong> bestimmt die Steigung der Flugbahn.<br>
+        <strong class="c-b">b</strong> bestimmt die Start-Höhe auf der y-Achse – also, wie hoch oder tief der Aussichtsturm des Bogenschützen liegt.
+      </div>
+    </div>
+
+    <div class="card stats-card">
+      <div class="label">Punkte</div>
+      <div class="big"><span id="score">0</span></div>
+      <div>Gelöste Aufgaben: <span id="solved">0</span></div>
+    </div>
+  </section>
+
+  <section class="stage" aria-label="Lineare Funktion mit Bogenschütze, Pfeil und Sternen">
+    <canvas id="game" width="1000" height="562"></canvas>
+
+    <div id="finishPanel" class="finish-panel">
+      <button id="targetAnswerBtn" class="answer-btn" type="button"></button>
+      <button id="nextBtn" type="button">Nächste Runde.</button>
+    </div>
+
+    <div id="message" class="message"></div>
+  </section>
+
+  <div class="toolbar" style="gap:10px;">
+    <button id="graphBtn" class="secondary" type="button">Graph ausblenden</button>
+    <button id="gridBtn" class="secondary" type="button">Koordinatensystem ausblenden</button>
+  </div>
+
+  <section class="controls" aria-label="Parameter der linearen Funktion">
+    <div class="control m-control">
+      <label for="mSlider">
+        <span>Steigung m</span>
+        <span class="value" id="mValue">0,5</span>
+      </label>
+      <input id="mSlider" type="range" min="-1.5" max="1.5" step="0.25" value="0.5" />
+    </div>
+
+    <div class="control b-control">
+      <label for="bSlider">
+        <span>y-Achsenabschnitt b</span>
+        <span class="value" id="bValue">0</span>
+      </label>
+      <input id="bSlider" type="range" min="-3" max="3" step="0.5" value="0" />
+    </div>
+
+    <button id="runBtn" type="button">Pfeil abschießen</button>
+  </section>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--m)"></i>m: Steigung – Pfeil steigt oder fällt</span>
+    <span><i class="dot" style="background:var(--b)"></i>b: y-Achsenabschnitt – Start-Höhe des Bogenschützen</span>
+  </div>
+</main>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  const els = {
+    taskNo: document.getElementById('taskNo'),
+    score: document.getElementById('score'),
+    solved: document.getElementById('solved'),
+    message: document.getElementById('message'),
+    finishPanel: document.getElementById('finishPanel'),
+    targetAnswerBtn: document.getElementById('targetAnswerBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    graphBtn: document.getElementById('graphBtn'),
+    gridBtn: document.getElementById('gridBtn'),
+    runBtn: document.getElementById('runBtn'),
+    m: document.getElementById('mSlider'),
+    b: document.getElementById('bSlider'),
+    mValue: document.getElementById('mValue'),
+    bValue: document.getElementById('bValue'),
+    fm: document.getElementById('fm'),
+    fb: document.getElementById('fb')
+  };
+
+  const world = { xmin:-7, xmax:7, ymin:-5, ymax:6 };
+  const M_VALUES = [];
+  const B_VALUES = [];
+  for(let v=-1.5; v<=1.5001; v+=0.25) M_VALUES.push(Number(v.toFixed(2)));
+  for(let v=-3; v<=3.0001; v+=0.5) B_VALUES.push(Number(v.toFixed(2)));
+
+  let params = { m:0.5, b:0 };
+  let target = { m:0.5, b:0 };
+  let stars = [];
+  let taskNo = 1;
+  let score = 0;
+  let solved = 0;
+  let showGrid = true;
+  let showGraph = true;
+  let revealTarget = false;
+
+  let arrow = {
+    active:false,
+    x:0,
+    y:0,
+    angle:0
+  };
+
+  function fmt(n){
+    if(Math.abs(n) < 1e-10) return '0';
+    return Number(n.toFixed(2)).toString().replace('.',',');
+  }
+
+  function fmtFormulaValue(n){
+    const t = fmt(n);
+    return n < 0 ? `(${t})` : t;
+  }
+
+  function equationText(p){
+    return `f(x) = ${fmtFormulaValue(p.m)} · x + ${fmtFormulaValue(p.b)}`;
+  }
+
+  function f(x,p=params){
+    return p.m * x + p.b;
+  }
+
+  function sx(x){
+    return (x - world.xmin)/(world.xmax-world.xmin) * canvas.width;
+  }
+
+  function sy(y){
+    return canvas.height - (y - world.ymin)/(world.ymax-world.ymin) * canvas.height;
+  }
+
+  function pick(arr){
+    return arr[Math.floor(Math.random()*arr.length)];
+  }
+
+  function validLine(p){
+    const yLeft = f(-6,p);
+    const yRight = f(6,p);
+    return yLeft >= world.ymin + 0.4 &&
+           yLeft <= world.ymax - 0.4 &&
+           yRight >= world.ymin + 0.4 &&
+           yRight <= world.ymax - 0.4 &&
+           p.b >= world.ymin + 0.4 &&
+           p.b <= world.ymax - 0.4;
+  }
+
+  function randomValidLine(exclude=null){
+    const candidates = [];
+    for(const m of M_VALUES){
+      for(const b of B_VALUES){
+        const p = {m,b};
+        if(validLine(p)){
+          if(exclude &&
+             Math.abs(p.m - exclude.m) < 1e-9 &&
+             Math.abs(p.b - exclude.b) < 1e-9){
+            continue;
+          }
+          candidates.push(p);
+        }
+      }
+    }
+    return pick(candidates);
+  }
+
+  function createTarget(){
+    target = randomValidLine();
+    stars = [];
+    const count = 10;
+    for(let i=0; i<count; i++){
+      const x = 0.8 + i * 0.55;
+      const y = f(x,target);
+      if(y >= world.ymin + 0.35 && y <= world.ymax - 0.35){
+        stars.push({
+          x, y,
+          caught:false,
+          twinkle: Math.random()*Math.PI*2
+        });
+      }
+    }
+  }
+
+  function chooseStartParams(){
+    params = randomValidLine(target);
+    els.m.value = params.m;
+    els.b.value = params.b;
+  }
+
+  function updateFinishPanel(){
+    if(revealTarget){
+      els.targetAnswerBtn.textContent = `Optimale Zielfunktion: ${equationText(target)}`;
+      els.finishPanel.classList.add('show');
+    }else{
+      els.finishPanel.classList.remove('show');
+    }
+  }
+
+  function syncParams(){
+    params = {
+      m:Number(els.m.value),
+      b:Number(els.b.value)
+    };
+
+    els.mValue.textContent = fmt(params.m);
+    els.bValue.textContent = fmt(params.b);
+
+    els.fm.textContent = fmtFormulaValue(params.m);
+    els.fb.textContent = fmtFormulaValue(params.b);
+
+    updateFinishPanel();
+    draw();
+  }
+
+  function showMessage(text){
+    els.message.textContent = text;
+    els.message.classList.add('show');
+  }
+
+  function hideMessage(){
+    els.message.classList.remove('show');
+  }
+
+  function setControlsDisabled(disabled){
+    [els.m, els.b, els.runBtn].forEach(el => el.disabled = disabled);
+  }
+
+  function drawBackground(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const sky = ctx.createLinearGradient(0,0,0,canvas.height*0.72);
+    sky.addColorStop(0,'#fbfdff');
+    sky.addColorStop(1,'#e8f3ff');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // Flacher Rasenboden ohne rechten Berg
+    const horizonY = sy(-4.05);
+
+    ctx.fillStyle = '#9fd486';
+    ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
+
+    // leicht gewellte Grasoberkante
+    ctx.fillStyle = '#7fb768';
+    ctx.beginPath();
+    ctx.moveTo(0, horizonY + 12);
+    ctx.quadraticCurveTo(canvas.width*0.18, horizonY - 2, canvas.width*0.35, horizonY + 10);
+    ctx.quadraticCurveTo(canvas.width*0.52, horizonY + 18, canvas.width*0.7, horizonY + 8);
+    ctx.quadraticCurveTo(canvas.width*0.86, horizonY + 2, canvas.width, horizonY + 10);
+    ctx.lineTo(canvas.width, canvas.height);
+    ctx.lineTo(0, canvas.height);
+    ctx.closePath();
+    ctx.fill();
+
+    // kleine Grasdetails
+    ctx.strokeStyle = 'rgba(80,132,63,.28)';
+    ctx.lineWidth = 1;
+    for(let i=0; i<24; i++){
+      const x = (i+0.5) * canvas.width / 24;
+      const y = horizonY + 12 + (i % 3) * 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y + 8);
+      ctx.lineTo(x - 3, y);
+      ctx.moveTo(x, y + 8);
+      ctx.lineTo(x + 3, y + 1);
+      ctx.stroke();
+    }
+  }
+
+  function drawCoordinateSystem(){
+    if(!showGrid) return;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(84,107,136,.16)';
+    ctx.lineWidth = 1;
+
+    for(let x=Math.ceil(world.xmin); x<=world.xmax; x++){
+      const px = sx(x);
+      ctx.beginPath();
+      ctx.moveTo(px,0);
+      ctx.lineTo(px,canvas.height);
+      ctx.stroke();
+    }
+
+    for(let y=Math.ceil(world.ymin); y<=world.ymax; y++){
+      const py = sy(y);
+      ctx.beginPath();
+      ctx.moveTo(0,py);
+      ctx.lineTo(canvas.width,py);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#708199';
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(0, sy(0));
+    ctx.lineTo(canvas.width, sy(0));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(sx(0), 0);
+    ctx.lineTo(sx(0), canvas.height);
+    ctx.stroke();
+
+    ctx.fillStyle = '#708199';
+    ctx.font = `${Math.max(12, canvas.width/72)}px system-ui, sans-serif`;
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for(let x=Math.ceil(world.xmin); x<=world.xmax; x++){
+      if(x===0) continue;
+      ctx.fillText(String(x), sx(x), sy(0) + 5);
+    }
+
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for(let y=Math.ceil(world.ymin); y<=world.ymax; y++){
+      if(y===0) continue;
+      ctx.fillText(String(y), sx(0) - 7, sy(y));
+    }
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('x', canvas.width - 18, sy(0) - 8);
+    ctx.fillText('y', sx(0) + 7, 20);
+    ctx.restore();
+  }
+
+  function traceLine(p, color, width, dash=[]){
+    const x1 = world.xmin;
+    const x2 = world.xmax;
+    const y1 = f(x1,p);
+    const y2 = f(x2,p);
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dash);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(sx(x1), sy(y1));
+    ctx.lineTo(sx(x2), sy(y2));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawCurrentLine(){
+    if(!showGraph) return;
+    traceLine(params, 'rgba(40,62,92,.58)', Math.max(2, canvas.width/420), []);
+  }
+
+  function drawTargetLine(){
+    if(!revealTarget) return;
+    traceLine(target, 'rgba(218,135,37,.78)', Math.max(2, canvas.width/480), [8,7]);
+  }
+
+  function drawStar(x,y,phase){
+    const px = sx(x);
+    const py = sy(y);
+    const r1 = 11 + Math.sin(phase)*1.2;
+    const r2 = 5.2;
+    const spikes = 5;
+
+    ctx.save();
+    ctx.translate(px,py);
+    ctx.beginPath();
+    for(let i=0; i<spikes*2; i++){
+      const r = i % 2 === 0 ? r1 : r2;
+      const angle = -Math.PI/2 + i * Math.PI / spikes;
+      const sxp = Math.cos(angle) * r;
+      const syp = Math.sin(angle) * r;
+      if(i===0) ctx.moveTo(sxp,syp);
+      else ctx.lineTo(sxp,syp);
+    }
+    ctx.closePath();
+
+    const grad = ctx.createRadialGradient(0,0,1,0,0,r1);
+    grad.addColorStop(0,'#ffef9b');
+    grad.addColorStop(1,'#ffc83d');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(194,133,23,.75)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawStars(){
+    stars.forEach((star) => {
+      if(!star.caught){
+        drawStar(star.x, star.y, star.twinkle);
+      }
+    });
+  }
+
+  function drawTower(){
+    const centerX = sx(0);
+    const platformY = sy(params.b);
+    const groundTop = sy(-4.05);
+
+    const towerWidth = Math.max(74, canvas.width * 0.09);
+    const platformThickness = 12;
+    const leftX = centerX - towerWidth/2;
+    const rightX = centerX + towerWidth/2;
+
+    ctx.save();
+
+    // Holzbeine des Aussichtsturms
+    ctx.strokeStyle = '#8a5c33';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(leftX + 10, groundTop + 4);
+    ctx.lineTo(centerX - 18, platformY + platformThickness);
+    ctx.moveTo(rightX - 10, groundTop + 4);
+    ctx.lineTo(centerX + 18, platformY + platformThickness);
+    ctx.stroke();
+
+    // Querstreben
+    ctx.strokeStyle = '#9b6a3d';
+    ctx.lineWidth = 4;
+    const levels = 4;
+    for(let i=1; i<=levels; i++){
+      const t = i / (levels + 1);
+      const y = groundTop + (platformY + platformThickness - groundTop) * (1 - t);
+      const inset = 12 + t * 10;
+      ctx.beginPath();
+      ctx.moveTo(leftX + inset, y);
+      ctx.lineTo(rightX - inset, y);
+      ctx.stroke();
+    }
+
+    // Kreuzstreben
+    ctx.strokeStyle = '#7a502d';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(leftX + 12, groundTop + 8);
+    ctx.lineTo(rightX - 14, platformY + platformThickness - 2);
+    ctx.moveTo(rightX - 12, groundTop + 8);
+    ctx.lineTo(leftX + 14, platformY + platformThickness - 2);
+    ctx.stroke();
+
+    // Plattform
+    ctx.fillStyle = '#b67d43';
+    ctx.fillRect(leftX - 8, platformY, towerWidth + 16, platformThickness);
+
+    ctx.fillStyle = '#a36d38';
+    for(let i=0; i<4; i++){
+      ctx.fillRect(leftX - 6 + i*(towerWidth+4)/4, platformY + 1, 12 + towerWidth/8, platformThickness - 2);
+    }
+
+    // Geländer
+    ctx.strokeStyle = '#8a5c33';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(leftX, platformY);
+    ctx.lineTo(leftX, platformY - 18);
+    ctx.moveTo(rightX, platformY);
+    ctx.lineTo(rightX, platformY - 18);
+    ctx.moveTo(leftX, platformY - 18);
+    ctx.lineTo(rightX, platformY - 18);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawArcher(){
+    const x = sx(0);
+    const y = sy(params.b);
+
+    drawTower();
+
+    ctx.save();
+    ctx.translate(x, y - 10);
+
+    // Figur auf der Plattform
+    ctx.strokeStyle = '#35414d';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+
+    // Kopf
+    ctx.fillStyle = '#f2d0b4';
+    ctx.beginPath();
+    ctx.arc(-10, -26, 8, 0, Math.PI*2);
+    ctx.fill();
+
+    // Körper
+    ctx.beginPath();
+    ctx.moveTo(-10, -18);
+    ctx.lineTo(-10, 2);
+    ctx.stroke();
+
+    // Beine
+    ctx.beginPath();
+    ctx.moveTo(-10, 2);
+    ctx.lineTo(-18, 16);
+    ctx.moveTo(-10, 2);
+    ctx.lineTo(-2, 16);
+    ctx.stroke();
+
+    // Arme
+    ctx.beginPath();
+    ctx.moveTo(-10, -14);
+    ctx.lineTo(4, -20);
+    ctx.moveTo(-10, -10);
+    ctx.lineTo(0, -6);
+    ctx.stroke();
+
+    // Bogen
+    ctx.strokeStyle = '#8f6a45';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(8, -14, 14, -Math.PI/2, Math.PI/2);
+    ctx.stroke();
+
+    // Bogensehne
+    ctx.strokeStyle = '#5e4a35';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(8, -28);
+    ctx.lineTo(8, 0);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawArrow(){
+    if(!arrow.active) return;
+
+    const px = sx(arrow.x);
+    const py = sy(arrow.y);
+
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(arrow.angle);
+
+    ctx.strokeStyle = '#495868';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-16,0);
+    ctx.lineTo(14,0);
+    ctx.stroke();
+
+    // Pfeilspitze
+    ctx.fillStyle = '#495868';
+    ctx.beginPath();
+    ctx.moveTo(14,0);
+    ctx.lineTo(6,-4);
+    ctx.lineTo(6,4);
+    ctx.closePath();
+    ctx.fill();
+
+    // Federn
+    ctx.fillStyle = '#7f94aa';
+    ctx.beginPath();
+    ctx.moveTo(-16,0);
+    ctx.lineTo(-23,-5);
+    ctx.lineTo(-20,0);
+    ctx.lineTo(-23,5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawSlopeAndInterceptLabels(){
+    const px0 = sx(0);
+    const py0 = sy(params.b);
+    const px1 = sx(1);
+    const py1 = sy(f(1));
+
+    ctx.save();
+    ctx.font = `700 ${Math.max(13, canvas.width/72)}px system-ui, sans-serif`;
+    ctx.textBaseline = 'middle';
+
+    // b-Markierung
+    ctx.strokeStyle = 'rgba(224,122,63,.8)';
+    ctx.fillStyle = '#c7682d';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6,4]);
+    ctx.beginPath();
+    ctx.moveTo(px0 + 22, sy(0));
+    ctx.lineTo(px0 + 22, py0);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillText('b', px0 + 28, (sy(0) + py0)/2);
+
+    // m-Markierung: von x=0 nach x=1
+    ctx.strokeStyle = 'rgba(31,157,113,.85)';
+    ctx.fillStyle = '#1f8e67';
+    ctx.setLineDash([6,4]);
+    ctx.beginPath();
+    ctx.moveTo(px0 + 10, py0 - 10);
+    ctx.lineTo(px1 - 10, py1 - 10);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillText('m', (px0 + px1)/2, (py0 + py1)/2 - 18);
+
+    ctx.restore();
+  }
+
+  function draw(){
+    drawBackground();
+    drawCoordinateSystem();
+    drawCurrentLine();
+    drawTargetLine();
+    drawStars();
+    drawArcher();
+    drawArrow();
+    drawSlopeAndInterceptLabels();
+  }
+
+  function collectStars(){
+    if(!arrow.active) return;
+    const ax = sx(arrow.x);
+    const ay = sy(arrow.y);
+
+    let hit = 0;
+    stars.forEach((star) => {
+      if(star.caught) return;
+      const dx = sx(star.x) - ax;
+      const dy = sy(star.y) - ay;
+      if(Math.hypot(dx,dy) < 24){
+        star.caught = true;
+        score += 100;
+        hit++;
+      }
+    });
+
+    if(hit){
+      els.score.textContent = score;
+    }
+  }
+
+  function startShot(){
+    if(arrow.active) return;
+
+    hideMessage();
+    revealTarget = false;
+    updateFinishPanel();
+    stars.forEach(star => star.caught = false);
+    setControlsDisabled(true);
+
+    const startX = 0;
+    const endX = 6.8;
+
+    // prüfen, ob Flugbahn sichtbar genug ist
+    const yStart = f(startX);
+    const yEnd = f(endX);
+    if(yStart < world.ymin || yStart > world.ymax || yEnd < world.ymin || yEnd > world.ymax){
+      showMessage('Wähle eine Gerade, die im Bild sichtbar bleibt.');
+      setControlsDisabled(false);
+      return;
+    }
+
+    const startTime = performance.now();
+    const duration = 5200;
+
+    arrow.active = true;
+    arrow.x = startX;
+    arrow.y = f(startX);
+    arrow.angle = -Math.atan(params.m);
+
+    function animate(now){
+      const t = Math.min(1, (now - startTime)/duration);
+      const eased = t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
+
+      arrow.x = startX + (endX - startX) * eased;
+      arrow.y = f(arrow.x);
+      arrow.angle = -Math.atan(params.m);
+
+      stars.forEach(star => star.twinkle += 0.12);
+      collectStars();
+      draw();
+
+      if(t < 1){
+        requestAnimationFrame(animate);
+      }else{
+        finishShot();
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  function finishShot(){
+    arrow.active = false;
+    revealTarget = true;
+    updateFinishPanel();
+
+    const caught = stars.filter(star => star.caught).length;
+    const all = stars.length;
+
+    if(caught === all){
+      solved++;
+      els.solved.textContent = solved;
+      showMessage(`Gelöst! Alle ${all} Sterne getroffen.`);
+    }else if(caught >= Math.ceil(all * .7)){
+      showMessage(`Fast geschafft: ${caught} von ${all} Sternen getroffen.`);
+    }else{
+      showMessage(`${caught} von ${all} Sternen getroffen.`);
+    }
+
+    draw();
+  }
+
+  function nextRound(){
+    taskNo++;
+    els.taskNo.textContent = taskNo;
+    revealTarget = false;
+    createTarget();
+    chooseStartParams();
+    syncParams();
+    setControlsDisabled(false);
+    hideMessage();
+  }
+
+  [els.m, els.b].forEach(slider => {
+    slider.addEventListener('input', () => {
+      hideMessage();
+      syncParams();
+    });
+  });
+
+  els.runBtn.addEventListener('click', startShot);
+  els.nextBtn.addEventListener('click', nextRound);
+  els.targetAnswerBtn.addEventListener('click', (event) => event.preventDefault());
+
+  els.graphBtn.addEventListener('click', () => {
+    showGraph = !showGraph;
+    els.graphBtn.textContent = showGraph ? 'Graph ausblenden' : 'Graph einblenden';
+    draw();
+  });
+
+  els.gridBtn.addEventListener('click', () => {
+    showGrid = !showGrid;
+    els.gridBtn.textContent = showGrid ? 'Koordinatensystem ausblenden' : 'Koordinatensystem einblenden';
+    draw();
+  });
+
+  function resizeCanvas(){
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(640, Math.round(rect.width * dpr));
+    const h = Math.round(w * 9 / 16);
+
+    if(canvas.width !== w || canvas.height !== h){
+      canvas.width = w;
+      canvas.height = h;
+      draw();
+    }
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+
+  function init(){
+    createTarget();
+    chooseStartParams();
+    syncParams();
+    requestAnimationFrame(resizeCanvas);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
